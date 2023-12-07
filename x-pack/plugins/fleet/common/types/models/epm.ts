@@ -34,7 +34,7 @@ export interface DefaultPackagesInstallationError {
 }
 
 export type InstallType = 'reinstall' | 'reupdate' | 'rollback' | 'update' | 'install' | 'unknown';
-export type InstallSource = 'registry' | 'upload' | 'bundled';
+export type InstallSource = 'registry' | 'upload' | 'bundled' | 'custom';
 
 export type EpmPackageInstallStatus = 'installed' | 'installing' | 'install_failed';
 
@@ -335,6 +335,9 @@ export enum RegistryDataStreamKeys {
   ingest_pipeline = 'ingest_pipeline',
   elasticsearch = 'elasticsearch',
   dataset_is_prefix = 'dataset_is_prefix',
+  routing_rules = 'routing_rules',
+  lifecycle = 'lifecycle',
+  agent = 'agent',
 }
 
 export interface RegistryDataStream {
@@ -351,6 +354,14 @@ export interface RegistryDataStream {
   [RegistryDataStreamKeys.ingest_pipeline]?: string;
   [RegistryDataStreamKeys.elasticsearch]?: RegistryElasticsearch;
   [RegistryDataStreamKeys.dataset_is_prefix]?: boolean;
+  [RegistryDataStreamKeys.routing_rules]?: RegistryDataStreamRoutingRules[];
+  [RegistryDataStreamKeys.lifecycle]?: RegistryDataStreamLifecycle;
+  [RegistryDataStreamKeys.lifecycle]?: RegistryDataStreamLifecycle;
+  [RegistryDataStreamKeys.agent]?: RegistryAgent;
+}
+
+export interface RegistryAgent {
+  privileges?: { root?: boolean };
 }
 
 export interface RegistryElasticsearch {
@@ -372,6 +383,19 @@ export interface RegistryDataStreamProperties {
 export interface RegistryDataStreamPrivileges {
   cluster?: string[];
   indices?: string[];
+}
+
+export interface RegistryDataStreamRoutingRules {
+  source_dataset: string;
+  rules: Array<{
+    target_dataset: string;
+    if: string;
+    namespace?: string;
+  }>;
+}
+
+export interface RegistryDataStreamLifecycle {
+  data_retention: string;
 }
 
 export type RegistryVarType =
@@ -506,6 +530,16 @@ export interface ExperimentalDataStreamFeature {
   features: Partial<Record<ExperimentalIndexingFeature, boolean>>;
 }
 
+export interface InstallFailedAttempt {
+  created_at: string;
+  target_version: string;
+  error: {
+    name: string;
+    message: string;
+    stack?: string;
+  };
+}
+
 export interface Installation {
   installed_kibana: KibanaAssetReference[];
   installed_es: EsAssetReference[];
@@ -525,6 +559,7 @@ export interface Installation {
   experimental_data_stream_features?: ExperimentalDataStreamFeature[];
   internal?: boolean;
   removable?: boolean;
+  latest_install_failed_attempts?: InstallFailedAttempt[];
 }
 
 export interface PackageUsageStats {
@@ -582,6 +617,7 @@ export interface PackageAssetReference {
 export interface IndexTemplateMappings {
   properties: any;
   dynamic_templates?: any;
+  runtime?: any;
 }
 
 // This is an index template v2, see https://github.com/elastic/elasticsearch/issues/53101
@@ -593,9 +629,11 @@ export interface IndexTemplate {
   template: {
     settings: any;
     mappings: any;
+    lifecycle?: any;
   };
   data_stream: { hidden?: boolean };
   composed_of: string[];
+  ignore_missing_component_templates?: string[];
   _meta: object;
 }
 
@@ -614,6 +652,9 @@ export interface TemplateMapEntry {
       }
     | {
         settings: NonNullable<RegistryElasticsearch['index_template.settings']>;
+      }
+    | {
+        lifecycle?: any;
       };
 }
 

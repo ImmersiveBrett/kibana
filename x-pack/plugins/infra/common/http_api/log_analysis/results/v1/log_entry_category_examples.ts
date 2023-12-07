@@ -5,16 +5,15 @@
  * 2.0.
  */
 
+import { logEntryContextRT, persistedLogViewReferenceRT } from '@kbn/logs-shared-plugin/common';
 import * as rt from 'io-ts';
-
-import { persistedLogViewReferenceRT } from '../../../../log_views';
+import { idFormatRT } from '../../id_formats/v1/id_formats';
 import {
   badRequestErrorRT,
   forbiddenErrorRT,
-  timeRangeRT,
   routeTimingMetadataRT,
+  timeRangeRT,
 } from '../../../shared';
-import { logEntryContextRT } from '../../../../log_entry';
 
 export const LOG_ANALYSIS_GET_LOG_ENTRY_CATEGORY_EXAMPLES_PATH =
   '/api/infra/log_analysis/results/log_entry_category_examples';
@@ -31,6 +30,7 @@ export const getLogEntryCategoryExamplesRequestPayloadRT = rt.type({
     exampleCount: rt.number,
     // log view
     logView: persistedLogViewReferenceRT,
+    idFormat: idFormatRT,
     // the time range to fetch the category examples from
     timeRange: timeRangeRT,
   }),

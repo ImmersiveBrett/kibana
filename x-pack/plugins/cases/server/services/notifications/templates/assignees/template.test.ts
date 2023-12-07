@@ -6,7 +6,7 @@
  */
 
 import { mockCases } from '../../../../mocks';
-import { getByText } from '@testing-library/dom';
+import { getByText } from '@testing-library/react';
 import { assigneesTemplateRenderer } from './renderer';
 import type { CaseSavedObjectTransformed } from '../../../../common/types/case';
 
@@ -72,5 +72,14 @@ describe('Assignees template', () => {
     const container = await getHTMLNode(caseSO, null);
 
     expect(container.querySelector('.btn')).not.toBeTruthy();
+  });
+
+  it('renders current year correctly', async () => {
+    const currentYear = new Date().getUTCFullYear();
+    const footerText = `© ${currentYear} Elasticsearch B.V. All Rights Reserved.`;
+
+    const container = await getHTMLNode(caseSO, mockCaseUrl);
+
+    expect(getByText(container, footerText, { exact: false })).toBeTruthy();
   });
 });

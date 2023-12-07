@@ -15,7 +15,7 @@ import { CasesPage } from '../pages/cases/cases';
 import { LandingPage } from '../pages/landing/landing';
 import { OverviewPage } from '../pages/overview/overview';
 import { RulesPage } from '../pages/rules/rules';
-import { RuleDetailsPage } from '../pages/rule_details';
+import { RuleDetailsPage } from '../pages/rule_details/rule_details';
 import { SlosPage } from '../pages/slos/slos';
 import { SlosWelcomePage } from '../pages/slos_welcome/slos_welcome';
 import { SloDetailsPage } from '../pages/slo_details/slo_details';
@@ -28,6 +28,7 @@ import {
   LANDING_PATH,
   OVERVIEW_PATH,
   ROOT_PATH,
+  RULES_LOGS_PATH,
   RULES_PATH,
   RULE_DETAIL_PATH,
   SLOS_PATH,
@@ -35,7 +36,8 @@ import {
   SLO_CREATE_PATH,
   SLO_DETAIL_PATH,
   SLO_EDIT_PATH,
-} from './paths';
+} from '../../common/locators/paths';
+import { HasDataContextProvider } from '../context/has_data_context/has_data_context';
 
 // Note: React Router DOM <Redirect> component was not working here
 // so I've recreated this simple version for this purpose.
@@ -64,7 +66,11 @@ export const routes = {
   },
   [LANDING_PATH]: {
     handler: () => {
-      return <LandingPage />;
+      return (
+        <HasDataContextProvider>
+          <LandingPage />
+        </HasDataContextProvider>
+      );
     },
     params: {},
     exact: true,
@@ -72,9 +78,11 @@ export const routes = {
   [OVERVIEW_PATH]: {
     handler: () => {
       return (
-        <DatePickerContextProvider>
-          <OverviewPage />
-        </DatePickerContextProvider>
+        <HasDataContextProvider>
+          <DatePickerContextProvider>
+            <OverviewPage />
+          </DatePickerContextProvider>
+        </HasDataContextProvider>
       );
     },
     params: {},
@@ -104,6 +112,13 @@ export const routes = {
   [RULES_PATH]: {
     handler: () => {
       return <RulesPage />;
+    },
+    params: {},
+    exact: true,
+  },
+  [RULES_LOGS_PATH]: {
+    handler: () => {
+      return <RulesPage activeTab="logs" />;
     },
     params: {},
     exact: true,

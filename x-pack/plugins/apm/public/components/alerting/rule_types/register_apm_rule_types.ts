@@ -7,22 +7,17 @@
 
 import { i18n } from '@kbn/i18n';
 import { lazy } from 'react';
-import { ALERT_REASON } from '@kbn/rule-data-utils';
+import { ALERT_REASON, ApmRuleType } from '@kbn/rule-data-utils';
 import type { ObservabilityRuleTypeRegistry } from '@kbn/observability-plugin/public';
 import {
   getAlertUrlErrorCount,
   getAlertUrlTransaction,
 } from '../../../../common/utils/formatters';
-import { ApmRuleType } from '../../../../common/rules/apm_rule_types';
 import {
   anomalyMessage,
-  anomalyRecoveryMessage,
   errorCountMessage,
-  errorCountRecoveryMessage,
   transactionDurationMessage,
-  transactionDurationRecoveryMessage,
   transactionErrorRateMessage,
-  transactionErrorRateRecoveryMessage,
 } from '../../../../common/rules/default_action_message';
 
 // copied from elasticsearch_fieldnames.ts to limit page load bundle size
@@ -59,7 +54,7 @@ export function registerApmRuleTypes(
     }),
     requiresAppContext: false,
     defaultActionMessage: errorCountMessage,
-    defaultRecoveryMessage: errorCountRecoveryMessage,
+    priority: 80,
   });
 
   observabilityRuleTypeRegistry.register({
@@ -97,7 +92,7 @@ export function registerApmRuleTypes(
     ),
     requiresAppContext: false,
     defaultActionMessage: transactionDurationMessage,
-    defaultRecoveryMessage: transactionDurationRecoveryMessage,
+    priority: 60,
   });
 
   observabilityRuleTypeRegistry.register({
@@ -130,7 +125,7 @@ export function registerApmRuleTypes(
     }),
     requiresAppContext: false,
     defaultActionMessage: transactionErrorRateMessage,
-    defaultRecoveryMessage: transactionErrorRateRecoveryMessage,
+    priority: 70,
   });
 
   observabilityRuleTypeRegistry.register({
@@ -160,6 +155,6 @@ export function registerApmRuleTypes(
     }),
     requiresAppContext: false,
     defaultActionMessage: anomalyMessage,
-    defaultRecoveryMessage: anomalyRecoveryMessage,
+    priority: 90,
   });
 }

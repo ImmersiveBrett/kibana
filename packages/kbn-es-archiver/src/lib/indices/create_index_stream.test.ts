@@ -7,6 +7,7 @@
  */
 
 import {
+  mockIsSavedObjectIndex,
   mockCleanSavedObjectIndices,
   mockDeleteSavedObjectIndices,
 } from './create_index_stream.test.mock';
@@ -31,6 +32,7 @@ const chance = new Chance();
 const log = createStubLogger();
 
 beforeEach(() => {
+  mockIsSavedObjectIndex.mockClear();
   mockCleanSavedObjectIndices.mockClear();
   mockDeleteSavedObjectIndices.mockClear();
 });
@@ -141,7 +143,12 @@ describe('esArchiver: createCreateIndexStream()', () => {
         body: {
           settings: undefined,
           mappings: undefined,
-          aliases: { foo: {} },
+        },
+      });
+
+      sinon.assert.calledWith(client.indices.updateAliases as sinon.SinonSpy, {
+        body: {
+          actions: [{ add: { alias: 'foo', index: 'index' } }],
         },
       });
     });
@@ -299,6 +306,7 @@ describe('esArchiver: createCreateIndexStream()', () => {
       ]);
 
       sinon.assert.notCalled(client.indices.create as sinon.SinonSpy);
+      sinon.assert.notCalled(client.indices.updateAliases as sinon.SinonSpy);
       expect(output).toEqual([createStubDocRecord('index', 1)]);
     });
   });
@@ -310,8 +318,8 @@ describe('esArchiver: createCreateIndexStream()', () => {
 
       await createPromiseFromStreams([
         createListStream([
-          createStubIndexRecord('new-index'),
-          createStubIndexRecord('existing-index'),
+          createStubIndexRecord('new-index', { 'new-index-alias': {} }),
+          createStubIndexRecord('existing-index', { 'existing-index-alias': {} }),
         ]),
         createCreateIndexStream({
           client,
@@ -331,6 +339,12 @@ describe('esArchiver: createCreateIndexStream()', () => {
         'index',
         'new-index'
       );
+
+      // only update aliases for the 'new-index'
+      sinon.assert.callCount(client.indices.updateAliases as sinon.SinonSpy, 1);
+      expect((client.indices.updateAliases as sinon.SinonSpy).args[0][0]).toHaveProperty('body', {
+        actions: [{ add: { alias: 'new-index-alias', index: 'new-index' } }],
+      });
     });
 
     it('filters documents for skipped indices', async () => {

@@ -23,15 +23,16 @@ export const storageExplorer = {
     element: (
       <Breadcrumb
         title={i18n.translate('xpack.apm.views.storageExplorer.title', {
-          defaultMessage: 'Storage explorer',
+          defaultMessage: 'Storage Explorer',
         })}
         href="/storage-explorer"
       >
         <ApmMainTemplate
+          environmentFilter={false}
           pageHeader={{
             alignItems: 'center',
             pageTitle: i18n.translate('xpack.apm.views.storageExplorer.title', {
-              defaultMessage: 'Storage explorer',
+              defaultMessage: 'Storage Explorer',
             }),
             rightSideItems: [
               <EuiLink

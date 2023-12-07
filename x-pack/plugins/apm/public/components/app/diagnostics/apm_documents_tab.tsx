@@ -10,38 +10,62 @@ import {
   EuiBasicTable,
   EuiBasicTableColumn,
   EuiSpacer,
+  EuiText,
+  EuiToolTip,
 } from '@elastic/eui';
-import React, { useState } from 'react';
+import { i18n } from '@kbn/i18n';
 import { useKibana } from '@kbn/kibana-react-plugin/public';
 import { orderBy } from 'lodash';
-import { useApmParams } from '../../../hooks/use_apm_params';
-import { asInteger } from '../../../../common/utils/formatters';
-import { APM_STATIC_DATA_VIEW_ID } from '../../../../common/data_view_constants';
+import React, { useMemo, useState } from 'react';
+import { asBigNumber, asInteger } from '../../../../common/utils/formatters';
 import type { ApmEvent } from '../../../../server/routes/diagnostics/bundle/get_apm_events';
-import { useDiagnosticsContext } from './context/use_diagnostics';
+import { useApmParams } from '../../../hooks/use_apm_params';
+import { useDataViewId } from '../../../hooks/use_data_view_id';
 import { ApmPluginStartDeps } from '../../../plugin';
 import { SearchBar } from '../../shared/search_bar/search_bar';
+import { useDiagnosticsContext } from './context/use_diagnostics';
 
 export function DiagnosticsApmDocuments() {
   const { diagnosticsBundle, isImported } = useDiagnosticsContext();
   const { discover } = useKibana<ApmPluginStartDeps>().services;
+  const dataViewId = useDataViewId();
+
   const [sortField, setSortField] = useState<keyof ApmEvent>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const {
     query: { rangeFrom, rangeTo },
   } = useApmParams('/diagnostics/documents');
 
-  const items = diagnosticsBundle?.apmEvents ?? [];
+  const items = useMemo<ApmEvent[]>(() => {
+    return (
+      diagnosticsBundle?.apmEvents.filter(({ legacy, docCount, intervals }) => {
+        const isLegacyAndUnused =
+          legacy === true &&
+          docCount === 0 &&
+          intervals &&
+          Object.values(intervals).every(
+            (interval) => interval.eventDocCount === 0
+          );
+
+        return !isLegacyAndUnused;
+      }) ?? []
+    );
+  }, [diagnosticsBundle?.apmEvents]);
+
   const columns: Array<EuiBasicTableColumn<ApmEvent>> = [
     {
       name: 'Name',
       field: 'name',
-      width: '40%',
+      width: '30%',
     },
     {
       name: 'Doc count',
       field: 'docCount',
-      render: (_, { docCount }) => asInteger(docCount),
+      render: (_, { docCount }) => (
+        <EuiToolTip content={`${asInteger(docCount)} docs`}>
+          <div style={{ cursor: 'pointer' }}>{asBigNumber(docCount)}</div>
+        </EuiToolTip>
+      ),
       sortable: true,
     },
     {
@@ -49,7 +73,7 @@ export function DiagnosticsApmDocuments() {
       field: 'intervals.1m',
       render: (_, { intervals }) => {
         const interval = intervals?.['1m'];
-        return interval ? asInteger(interval) : '-';
+        return <IntervalDocCount interval={interval} />;
       },
     },
     {
@@ -57,7 +81,7 @@ export function DiagnosticsApmDocuments() {
       field: 'intervals.10m',
       render: (_, { intervals }) => {
         const interval = intervals?.['10m'];
-        return interval ? asInteger(interval) : '-';
+        return <IntervalDocCount interval={interval} />;
       },
     },
     {
@@ -65,7 +89,7 @@ export function DiagnosticsApmDocuments() {
       field: 'intervals.60m',
       render: (_, { intervals }) => {
         const interval = intervals?.['60m'];
-        return interval ? asInteger(interval) : '-';
+        return <IntervalDocCount interval={interval} />;
       },
     },
     {
@@ -82,7 +106,7 @@ export function DiagnosticsApmDocuments() {
                 language: 'kuery',
                 query: item.kuery,
               },
-              dataViewId: APM_STATIC_DATA_VIEW_ID,
+              dataViewId,
               timeRange:
                 rangeTo && rangeFrom
                   ? {
@@ -102,13 +126,37 @@ export function DiagnosticsApmDocuments() {
       {isImported && diagnosticsBundle ? (
         <>
           <EuiBadge>
-            From: {new Date(diagnosticsBundle.params.start).toISOString()}
+            {i18n.translate(
+              'xpack.apm.diagnosticsApmDocuments.from:BadgeLabel',
+              {
+                defaultMessage: 'From: {date}',
+                values: {
+                  date: new Date(diagnosticsBundle.params.start).toISOString(),
+                },
+              }
+            )}
           </EuiBadge>
           <EuiBadge>
-            To: {new Date(diagnosticsBundle.params.end).toISOString()}
+            {i18n.translate('xpack.apm.diagnosticsApmDocuments.to:BadgeLabel', {
+              defaultMessage: 'To: {date}',
+              values: {
+                date: new Date(diagnosticsBundle.params.end).toISOString(),
+              },
+            })}
           </EuiBadge>
           <EuiBadge>
-            Filter: {diagnosticsBundle?.params.kuery ?? <em>Empty</em>}
+            {i18n.translate(
+              'xpack.apm.diagnosticsApmDocuments.filter:BadgeLabel',
+              { defaultMessage: 'Filter:' }
+            )}
+            {diagnosticsBundle?.params.kuery ?? (
+              <em>
+                {i18n.translate(
+                  'xpack.apm.diagnosticsApmDocuments.em.emptyLabel',
+                  { defaultMessage: 'Empty' }
+                )}
+              </em>
+            )}
           </EuiBadge>
           <EuiSpacer />
         </>
@@ -136,5 +184,41 @@ export function DiagnosticsApmDocuments() {
         }}
       />
     </>
+  );
+}
+
+function IntervalDocCount({
+  interval,
+}: {
+  interval?: {
+    metricDocCount: number;
+    eventDocCount: number;
+  };
+}) {
+  if (interval === undefined) {
+    return <>-</>;
+  }
+
+  return (
+    <EuiToolTip
+      content={`${asInteger(interval.metricDocCount)} docs / ${asInteger(
+        interval.eventDocCount
+      )} events`}
+    >
+      <div style={{ cursor: 'pointer' }}>
+        {asBigNumber(interval.metricDocCount)}&nbsp;
+        <EuiText
+          css={{ fontStyle: 'italic', fontSize: '80%', display: 'inline' }}
+        >
+          {i18n.translate('xpack.apm.intervalDocCount.TextLabel', {
+            defaultMessage:
+              '({docCount} {docCount, plural, one {event} other {events}})',
+            values: {
+              docCount: asBigNumber(interval.eventDocCount),
+            },
+          })}
+        </EuiText>
+      </div>
+    </EuiToolTip>
   );
 }

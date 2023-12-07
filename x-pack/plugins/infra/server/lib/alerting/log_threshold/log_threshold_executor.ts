@@ -7,7 +7,7 @@
 
 import type * as estypes from '@elastic/elasticsearch/lib/api/typesWithBodyKey';
 import { i18n } from '@kbn/i18n';
-import { getAlertUrl, AlertsLocatorParams } from '@kbn/observability-plugin/common';
+import { AlertsLocatorParams, getAlertDetailsUrl } from '@kbn/observability-plugin/common';
 import {
   ALERT_CONTEXT,
   ALERT_EVALUATION_THRESHOLD,
@@ -183,13 +183,7 @@ export const createLogThresholdExecutor = (libs: InfraBackendLibs) =>
           alert.scheduleActions(actionGroup, {
             ...sharedContext,
             ...context,
-            alertDetailsUrl: await getAlertUrl(
-              alertUuid,
-              spaceId,
-              indexedStartedAt,
-              libs.alertsLocator,
-              libs.basePath.publicBaseUrl
-            ),
+            alertDetailsUrl: getAlertDetailsUrl(libs.basePath, spaceId, alertUuid),
           });
         });
       }
@@ -201,12 +195,12 @@ export const createLogThresholdExecutor = (libs: InfraBackendLibs) =>
       return alert;
     };
 
-    const [, , { logViews }] = await libs.getStartServices();
+    const [, { logsShared }] = await libs.getStartServices();
 
     try {
       const validatedParams = decodeOrThrow(ruleParamsRT)(params);
 
-      const { indices, timestampField, runtimeMappings } = await logViews
+      const { indices, timestampField, runtimeMappings } = await logsShared.logViews
         .getClient(savedObjectsClient, scopedClusterClient.asCurrentUser)
         .getResolvedLogView(validatedParams.logView);
 
@@ -887,13 +881,7 @@ const processRecoveredAlerts = async ({
     const viewInAppUrl = addSpaceIdToPath(basePath.publicBaseUrl, spaceId, relativeViewInAppUrl);
 
     const baseContext = {
-      alertDetailsUrl: await getAlertUrl(
-        alertUuid,
-        spaceId,
-        indexedStartedAt,
-        alertsLocator,
-        basePath.publicBaseUrl
-      ),
+      alertDetailsUrl: getAlertDetailsUrl(basePath, spaceId, alertUuid),
       group: hasGroupBy(validatedParams) ? recoveredAlertId : null,
       groupByKeys: groupByKeysObjectForRecovered[recoveredAlertId],
       timestamp: startedAt.toISOString(),

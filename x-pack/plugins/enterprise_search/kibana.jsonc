@@ -17,10 +17,9 @@
       "data",
       "discover",
       "charts",
-      "infra",
+      "logsShared",
       "cloud",
       "esUiShared",
-      "guidedOnboarding",
       "lens",
       "embeddable",
       "share"
@@ -31,11 +30,11 @@
       "home",
       "ml",
       "spaces",
-      "usageCollection"
+      "usageCollection",
+      "guidedOnboarding",
     ],
     "requiredBundles": [
-      "kibanaReact",
-      "cloudChat"
+      "kibanaReact"
     ]
   }
 }

@@ -16,9 +16,12 @@ import {
   defaultFilterStateKey,
   defaultPositionStateKey,
   DEFAULT_REFRESH_INTERVAL,
-  getTimeRangeStartFromTime,
+} from '@kbn/logs-shared-plugin/common';
+import moment from 'moment';
+import {
   getTimeRangeEndFromTime,
-} from '../../../../common/log_views';
+  getTimeRangeStartFromTime,
+} from '../../../../common/url_state_storage_service';
 import { minimalTimeKeyRT } from '../../../../common/time';
 import { datemathStringRT } from '../../../utils/datemath';
 import { createPlainError, formatErrors } from '../../../../common/runtime_types';
@@ -157,8 +160,8 @@ export const initializeFromUrl =
               Either.chain(({ position }) =>
                 position && position.time
                   ? Either.right({
-                      from: getTimeRangeStartFromTime(position.time),
-                      to: getTimeRangeEndFromTime(position.time),
+                      from: getTimeRangeStartFromTime(moment(position.time).valueOf()),
+                      to: getTimeRangeEndFromTime(moment(position.time).valueOf()),
                     })
                   : Either.left(null)
               )

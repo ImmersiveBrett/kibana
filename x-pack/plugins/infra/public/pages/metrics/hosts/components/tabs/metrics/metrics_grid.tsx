@@ -4,102 +4,54 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-import React from 'react';
-
-import { EuiFlexGrid, EuiFlexItem } from '@elastic/eui';
+import React, { useMemo } from 'react';
 import { i18n } from '@kbn/i18n';
-import { EuiSpacer } from '@elastic/eui';
-import { MetricChart, MetricChartProps } from './metric_chart';
-import { HostMetricsDocsLink } from '../../metric_explanation/host_metrics_docs_link';
+import { EuiFlexGrid, EuiFlexItem, EuiText, EuiFlexGroup, EuiSpacer } from '@elastic/eui';
+import { findInventoryModel } from '@kbn/metrics-data-access-plugin/common';
+import useAsync from 'react-use/lib/useAsync';
+import { HostMetricsExplanationContent } from '../../../../../../components/lens';
+import { Chart } from './chart';
+import { Popover } from '../../table/popover';
+import { useMetricsDataViewContext } from '../../../hooks/use_data_view';
 
-const DEFAULT_BREAKDOWN_SIZE = 20;
-const CHARTS_IN_ORDER: Array<Pick<MetricChartProps, 'title' | 'type'> & { fullRow?: boolean }> = [
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.cpuUsage', {
-      defaultMessage: 'CPU Usage',
-    }),
-    type: 'cpuUsage',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.normalizedLoad1m', {
-      defaultMessage: 'Normalized Load',
-    }),
-    type: 'normalizedLoad1m',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.memoryUsage', {
-      defaultMessage: 'Memory Usage',
-    }),
-    type: 'memoryUsage',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.memoryFree', {
-      defaultMessage: 'Memory Free',
-    }),
-    type: 'memoryFree',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskSpaceUsed', {
-      defaultMessage: 'Disk Space Usage',
-    }),
-    type: 'diskSpaceUsage',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskSpaceAvailable', {
-      defaultMessage: 'Disk Space Available',
-    }),
-    type: 'diskSpaceAvailable',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskIORead', {
-      defaultMessage: 'Disk Read IOPS',
-    }),
-    type: 'diskIORead',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskIOWrite', {
-      defaultMessage: 'Disk Write IOPS',
-    }),
-    type: 'diskIOWrite',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskReadThroughput', {
-      defaultMessage: 'Disk Read Throughput',
-    }),
-    type: 'diskReadThroughput',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.diskWriteThroughput', {
-      defaultMessage: 'Disk Write Throughput',
-    }),
-    type: 'diskWriteThroughput',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.rx', {
-      defaultMessage: 'Network Inbound (RX)',
-    }),
-    type: 'rx',
-  },
-  {
-    title: i18n.translate('xpack.infra.hostsViewPage.tabs.metricsCharts.tx', {
-      defaultMessage: 'Network Outbound (TX)',
-    }),
-    type: 'tx',
-  },
-];
+export const MetricsGrid = () => {
+  const model = findInventoryModel('host');
+  const { dataView } = useMetricsDataViewContext();
 
-export const MetricsGrid = React.memo(() => {
+  const { value: dashboards } = useAsync(() => {
+    return model.metrics.getDashboards();
+  });
+
+  const charts = useMemo(
+    () => dashboards?.hostsView.get({ metricsDataView: dataView }).charts ?? [],
+    [dataView, dashboards]
+  );
+
   return (
     <>
-      <HostMetricsDocsLink />
+      <EuiFlexGroup gutterSize="xs" alignItems="center">
+        <EuiFlexItem grow={false}>
+          <EuiText size="xs">
+            {i18n.translate('xpack.infra.metricsGrid.learnMoreAboutMetricsTextLabel', {
+              defaultMessage: 'Learn more about metrics',
+            })}
+          </EuiText>
+        </EuiFlexItem>
+        <EuiFlexItem grow={false}>
+          <Popover>
+            <HostMetricsExplanationContent />
+          </Popover>
+        </EuiFlexItem>
+      </EuiFlexGroup>
+
       <EuiSpacer size="s" />
       <EuiFlexGrid columns={2} gutterSize="s" data-test-subj="hostsView-metricChart">
-        {CHARTS_IN_ORDER.map(({ fullRow, ...chartProp }) => (
-          <EuiFlexItem key={chartProp.type} style={fullRow ? { gridColumn: '1/-1' } : {}}>
-            <MetricChart breakdownSize={DEFAULT_BREAKDOWN_SIZE} {...chartProp} />
+        {charts.map((chartProp, index) => (
+          <EuiFlexItem key={index} grow={false}>
+            <Chart {...chartProp} />
           </EuiFlexItem>
         ))}
       </EuiFlexGrid>
     </>
   );
-});
+};
